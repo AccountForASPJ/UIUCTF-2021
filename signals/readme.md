@@ -38,7 +38,8 @@ In short, this is how the the code works:
 6. Go back to 1
 
 Since we know that the first byte of the next instruction is always 0x48, we can calculate each characters of the flag using (first byte of instruction before the XOR) ^ 0x48.
-With this I reimplemented the XOR algorithm in python to print out the flag.
+Originally, I wanted to use a debugger to set breakpoints and change my flag or register values during the program execution. Or using pwnlib + gdb to automate the process. But in the end, this is my solution ...
+I implemented the XOR algorithm in python to print out the flag.
 
 ```
 from pwn import *
@@ -51,18 +52,17 @@ def twos_comp(val, bits):
 
 f = open("signals","rb")
 code = bytearray(f.read())
-#print(code)
+
 offset= 0x3020 # this is the offset of code() 
 
-flag = b'u'
-offset = offset + 7 + u32(code[offset+3:offset+7])
+flag = b'u' # we know the first letter of the flag
+offset = offset + 7 + u32(code[offset+3:offset+7]) #the next offset
 while flag[-1] != ord('}'):
-    #print(hex(code[offset]^flag[-1]))
     if  (code[offset] ^ flag[-1]) == 0x48 :
         for i in range(0x1d):
-            code[offset+i] = code[offset+i] ^ flag[-1]
-        offset = offset + 7 + twos_comp(u32(code[offset+3:offset+7]),32)
-        flag = flag + chr(code[offset] ^ 0x48).encode('utf-8')
+            code[offset+i] = code[offset+i] ^ flag[-1] # decode the next instruction
+        offset = offset + 7 + twos_comp(u32(code[offset+3:offset+7]),32)  # get the next offset
+        flag = flag + chr(code[offset] ^ 0x48).encode('utf-8') # calculate the next character
     else:
         print("error")
         break
